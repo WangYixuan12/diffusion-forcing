@@ -13,6 +13,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Any
 from einops import rearrange
+from tqdm import tqdm
 
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
@@ -180,6 +181,7 @@ class DiffusionForcingBase(BasePytorchAlgo):
             xs_pred.append(x_next_pred)
 
         # prediction
+        pbar = tqdm(total=n_frames, initial=len(xs_pred), desc="Sampling")
         while len(xs_pred) < n_frames:
             if self.chunk_size > 0:
                 horizon = min(n_frames - len(xs_pred), self.chunk_size)
@@ -198,6 +200,9 @@ class DiffusionForcingBase(BasePytorchAlgo):
             pyramid = np.clip(pyramid, a_min=0, a_max=self.sampling_timesteps, dtype=int)
 
             for m in range(pyramid_height):
+                # if m >= 1 and len(xs_pred) < n_frames - 1:
+                #     continue
+                
                 if self.transition_model.return_all_timesteps:
                     xs_pred_all.append(chunk)
 
@@ -206,8 +211,10 @@ class DiffusionForcingBase(BasePytorchAlgo):
                     i = min(pyramid[m, t], self.sampling_timesteps - 1)
 
                     chunk[t], z_chunk = self.transition_model.ddim_sample_step(
-                        chunk[t], z_chunk, conditions[len(xs_pred) + t], i
+                        chunk[t], z.detach(), conditions[len(xs_pred) + t], i
                     )
+                    # chunk[t] - (batch_size, fs*c, h, w)
+                    # z_chunk - (batch_size, z_dim, h, w)
 
                     # theoretically, one shall feed new chunk[t] with last z_chunk into transition model again 
                     # to get the posterior z_chunk, and optionaly, with small noise level k>0 for stablization. 
@@ -219,6 +226,7 @@ class DiffusionForcingBase(BasePytorchAlgo):
 
             z = z_chunk
             xs_pred += chunk
+            pbar.update(len(chunk))
 
         xs_pred = torch.stack(xs_pred)
         loss = F.mse_loss(xs_pred, xs, reduction="none")

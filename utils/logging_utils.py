@@ -63,16 +63,12 @@ def log_video(
     # use wandb directly here since pytorch lightning doesn't support logging videos yet
     for i in range(n_samples):
         logger.log({f"{namespace}/{prefix}_{i}": wandb.Video(video[i], fps=24), f"trainer/global_step": step})
-        # path = Path(f"outputs/robot_video/video_{i}")
-        # path.mkdir(parents=True, exist_ok=True)
-        # for t, f in enumerate(video[i]):
-        #     (path / "view1").mkdir(parents=True, exist_ok=True)
-        #     (path / "view2").mkdir(parents=True, exist_ok=True)
-        #     f = f[..., :32]
-        #     f = np.transpose(f, (1, 2, 0))
-        #     f = cv2.cvtColor(f, cv2.COLOR_RGB2BGR)
-        #     cv2.imwrite(str((path / f"view1/{t}.png").resolve()), f[:32])
-        #     cv2.imwrite(str((path / f"view2/{t}.png").resolve()), f[32:])
+        path = Path(f"outputs/video/video_{i}")
+        path.mkdir(parents=True, exist_ok=True)
+        for t, f in enumerate(video[i]):
+            f = np.transpose(f, (1, 2, 0))
+            f = cv2.cvtColor(f, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(str((path / f"{t}.png").resolve()), f)
 
 
 def get_validation_metrics_for_videos(

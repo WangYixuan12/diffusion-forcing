@@ -151,3 +151,7 @@ checkpoints
 # Pycharm setting
 .idea/
 data/*
+
+outputs_attn/
+.vscode/
+
