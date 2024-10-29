@@ -153,4 +153,5 @@ checkpoints
 data/*
 
 .vscode/
+outputs_attn/
 
